@@ -22,21 +22,16 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"errors"
 	"fmt"
+	"github.com/betterde/cdns/config"
 	"github.com/betterde/cdns/internal/journal"
-	"github.com/betterde/cdns/internal/response"
-	"github.com/gofiber/fiber/v2"
-	"go.uber.org/zap"
-	"os"
-	"strings"
-
+	"github.com/betterde/cdns/pkg/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
 )
 
 var (
-	app     *fiber.App
 	name    = "CDNS"
 	build   = "current"
 	commit  = "none"
@@ -55,33 +50,11 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	app = fiber.New(fiber.Config{
-		AppName:       name,
-		ServerHeader:  fmt.Sprintf("%s %s", name, rootCmd.Version),
-		CaseSensitive: true,
-		// Override default error handler
-		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-			// Status code defaults to 500
-			code := fiber.StatusInternalServerError
+	// Init HTTP server
+	api.InitServer(name, rootCmd.Version)
 
-			// Retrieve the custom status code if it's a fiber.*Error
-			var e *fiber.Error
-			if errors.As(err, &e) {
-				code = e.Code
-			}
-
-			if err != nil {
-				if code >= fiber.StatusInternalServerError {
-					journal.Logger.Errorw("Analysis server runtime error:", zap.Error(err))
-				}
-
-				// In case the SendFile fails
-				return ctx.Status(code).JSON(response.Send(code, err.Error(), err))
-			}
-
-			return nil
-		},
-	})
+	// Init Domain name server
+	//dns.InitServer(config.Conf.DNS.Listen, config.Conf.DNS.Protocol)
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -111,27 +84,8 @@ func init() {
 func initConfig() {
 	journal.InitLogger()
 
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Search config in home directory with name ".orbit" (without extension).
-		viper.AddConfigPath(".")
-		viper.SetConfigName(".cdns")
-		viper.AddConfigPath("/etc/cdns")
-	}
-
-	// read in environment variables that match
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.SetEnvPrefix("CDNS")
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err != nil {
-		journal.Logger.Errorf("Failed to read configuration file: %s", err)
-		os.Exit(1)
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
+	// Parse config from file and env variables
+	config.Parse(cfgFile)
 
 	level := viper.GetString("logging.level")
 	if verbose {
