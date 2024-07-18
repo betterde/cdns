@@ -5,7 +5,9 @@ import (
 	"github.com/betterde/cdns/config"
 	"github.com/betterde/cdns/internal/journal"
 	"github.com/miekg/dns"
+	"net"
 	"strings"
+	"time"
 )
 
 var Servers []*Server
@@ -17,7 +19,9 @@ type Records struct {
 
 // Server is the main struct for acme-dns DNS server
 type Server struct {
+	A               dns.RR
 	SOA             dns.RR
+	Domain          string
 	Server          *dns.Server
 	Domains         map[string]Records
 	PersonalKeyAuth string
@@ -62,7 +66,24 @@ func newServer(addr, proto string) *Server {
 	var server Server
 	server.Server = &dns.Server{Addr: addr, Net: proto}
 
+	domain := config.Conf.HTTP.Domain
+	if !strings.HasSuffix(domain, ".") {
+		domain = domain + "."
+	}
+	server.Domain = strings.ToLower(domain)
 	server.Domains = make(map[string]Records)
+
+	serial := time.Now().Format("2006010215")
+	// Add SOA
+	SOAStr := fmt.Sprintf("%s. SOA %s. %s. %s 28800 7200 604800 86400", strings.ToLower(config.Conf.SOA.Domain), strings.ToLower(config.Conf.DNS.NSName), strings.ToLower(config.Conf.DNS.Admin), serial)
+	SOARR, err := dns.NewRR(SOAStr)
+	if err != nil {
+		journal.Logger.With("Error", err.Error(), "SOA", SOAStr).Error("Error while adding SOA record")
+	} else {
+		server.appendRR(SOARR)
+		server.SOA = SOARR
+	}
+
 	return &server
 }
 
@@ -79,7 +100,7 @@ func (d *Server) Start(errorChannel chan error) {
 	}
 }
 
-func (d *Server) AppendRR(rr dns.RR) {
+func (d *Server) appendRR(rr dns.RR) {
 	addDomain := rr.Header().Name
 	_, ok := d.Domains[addDomain]
 	if !ok {
@@ -160,7 +181,7 @@ func (d *Server) getRecord(q dns.Question) ([]dns.RR, error) {
 
 // answeringForDomain checks if we have any records for a domain
 func (d *Server) answeringForDomain(name string) bool {
-	if config.Conf.HTTP.Domain == strings.ToLower(name) {
+	if d.Domain == strings.ToLower(name) {
 		return true
 	}
 	_, ok := d.Domains[strings.ToLower(name)]
@@ -189,7 +210,7 @@ func (d *Server) isOwnChallenge(name string) bool {
 			if !strings.HasSuffix(domain, ".") {
 				domain = domain + "."
 			}
-			if domain == config.Conf.HTTP.Domain {
+			if domain == d.Domain {
 				return true
 			}
 		}
@@ -205,9 +226,37 @@ func (d *Server) answer(q dns.Question) ([]dns.RR, int, bool, error) {
 	if !d.isOwnChallenge(q.Name) && !d.answeringForDomain(q.Name) {
 		rcode = dns.RcodeNameError
 	}
-	r, err := d.getRecord(q)
-	if err != nil {
-		return nil, rcode, false, err
+	r, _ := d.getRecord(q)
+
+	if q.Qtype == dns.TypeA && len(r) == 0 {
+		var ip net.IP
+		if q.Name == fmt.Sprintf("%s.", config.Conf.DNS.NSName) {
+			ip = net.ParseIP(config.Conf.NS.IP)
+		} else {
+			ip = net.ParseIP(config.Conf.Ingress.IP)
+		}
+
+		r = append(r, &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   q.Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    3600,
+			},
+			A: ip,
+		})
+	}
+
+	if q.Qtype == dns.TypeNS && len(r) == 0 {
+		r = append(r, &dns.NS{
+			Hdr: dns.RR_Header{
+				Name:   q.Name,
+				Rrtype: dns.TypeNS,
+				Class:  dns.ClassINET,
+				Ttl:    3600,
+			},
+			Ns: fmt.Sprintf("%s.", config.Conf.DNS.NSName),
+		})
 	}
 
 	if q.Qtype == dns.TypeTXT {

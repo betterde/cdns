@@ -13,11 +13,17 @@ const TLSModeFile = "file"
 var Conf *Config
 
 type Config struct {
-	Env       string    `yaml:"env"`
-	Logging   Logging   `yaml:"logging"`
+	NS        NS        `yaml:"ns"`
+	SOA       SOA       `yaml:"soa"`
 	DNS       DNS       `yaml:"dns"`
 	HTTP      HTTP      `yaml:"http"`
+	Ingress   Ingress   `yaml:"ingress"`
+	Logging   Logging   `yaml:"logging"`
 	Providers Providers `yaml:"providers"`
+}
+
+type NS struct {
+	IP string `yaml:"ip"`
 }
 
 type Logging struct {
@@ -25,7 +31,9 @@ type Logging struct {
 }
 
 type DNS struct {
+	Admin    string `yaml:"admin"`
 	Listen   string `yaml:"listen"`
+	NSName   string `yaml:"nsname"`
 	Protocol string `yaml:"protocol"`
 }
 
@@ -37,6 +45,10 @@ type HTTP struct {
 	Password string `yaml:"password"`
 }
 
+type Ingress struct {
+	IP string `yaml:"ip"`
+}
+
 type Providers struct {
 	ACME ACME `yaml:"acme"`
 	File File `yaml:"file"`
@@ -44,6 +56,10 @@ type Providers struct {
 
 type TLS struct {
 	Mode string `yaml:"mode"`
+}
+
+type SOA struct {
+	Domain string `yaml:"domain"`
 }
 
 type ACME struct {

@@ -73,7 +73,8 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 
 	go func() {
 		tlsConf := &tls.Config{
-			MinVersion: tls.VersionTLS12,
+			MinVersion: tls.VersionTLS11,
+			MaxVersion: tls.VersionTLS13,
 		}
 
 		switch config.Conf.HTTP.TLS.Mode {
@@ -104,9 +105,10 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 			}
 
 			tlsConf.GetCertificate = magic.GetCertificate
+			tlsConf.NextProtos = []string{"http/1.1", "acme-tls/1"}
 
 			// Create custom listener
-			ln, err := tls.Listen("tcp", ":443", tlsConf)
+			ln, err := tls.Listen("tcp", config.Conf.HTTP.Listen, tlsConf)
 			if err != nil {
 				journal.Logger.Panicw("Failed to start orbit server:", err)
 			}
@@ -115,6 +117,7 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 			if err != nil {
 				journal.Logger.Panicw("Failed to start orbit server:", err)
 			}
+			break
 		case config.TLSModeFile:
 			cert, err := tls.LoadX509KeyPair("certs/ssl.cert", "certs/ssl.key")
 			if err != nil {
@@ -122,7 +125,7 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 			}
 
 			// Create custom listener
-			ln, err := tls.Listen("tcp", ":443", &tls.Config{Certificates: []tls.Certificate{cert}})
+			ln, err := tls.Listen("tcp", config.Conf.HTTP.Listen, &tls.Config{Certificates: []tls.Certificate{cert}})
 			if err != nil {
 				journal.Logger.Panicw("Failed to start orbit server:", err)
 			}

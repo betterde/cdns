@@ -2,3 +2,7 @@
 .env
 .cdns.yaml
 orbit
+*.crt
+*.key
+*.pem
+certs
