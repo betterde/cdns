@@ -31,10 +31,11 @@ type Logging struct {
 }
 
 type DNS struct {
-	Admin    string `yaml:"admin"`
-	Listen   string `yaml:"listen"`
-	NSName   string `yaml:"nsname"`
-	Protocol string `yaml:"protocol"`
+	Admin    string            `yaml:"admin"`
+	Listen   string            `yaml:"listen"`
+	NSName   string            `yaml:"nsname"`
+	Records  map[string]Record `yaml:"records"`
+	Protocol string            `yaml:"protocol"`
 }
 
 type HTTP struct {
@@ -43,6 +44,11 @@ type HTTP struct {
 	Listen   string `yaml:"listen"`
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
+}
+
+type Record struct {
+	Type  string `yaml:"type"`
+	Value string `yaml:"value"`
 }
 
 type Ingress struct {

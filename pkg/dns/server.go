@@ -84,7 +84,33 @@ func newServer(addr, proto string) *Server {
 		server.SOA = SOARR
 	}
 
+	if len(config.Conf.DNS.Records) > 0 {
+		server.appendStaticRecords()
+	}
+
 	return &server
+}
+
+func (d *Server) appendStaticRecords() {
+	for domain, record := range config.Conf.DNS.Records {
+		var dnsRecord dns.RR
+		switch record.Type {
+		case "A":
+			dnsRecord = &dns.A{
+				Hdr: dns.RR_Header{
+					Name:   domain,
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+					Ttl:    3600,
+				},
+				A: net.ParseIP(record.Value),
+			}
+		default:
+			journal.Logger.With("Domain", domain, "Type", record.Type).Error("Unsupported record type")
+		}
+
+		d.appendRR(dnsRecord)
+	}
 }
 
 // Start starts the DNSServer

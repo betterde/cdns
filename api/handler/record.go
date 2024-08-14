@@ -18,7 +18,7 @@ func Present(ctx *fiber.Ctx) error {
 	payload := Request{}
 	err := ctx.BodyParser(&payload)
 	if err != nil {
-		return ctx.JSON(response.ValidationError("Payload validate is failed.", err))
+		return ctx.JSON(response.ValidationError("Payload validation failed.", err))
 	}
 
 	for _, server := range dns.Servers {
@@ -32,9 +32,8 @@ func Present(ctx *fiber.Ctx) error {
 			Txt: []string{payload.Value},
 		}
 
-		var rr record.RR = txtRecord
 		domain := server.Domains[payload.FQDN]
-		domain.Records = append(server.Domains[payload.FQDN].Records, rr)
+		domain.Records = append(server.Domains[payload.FQDN].Records, txtRecord)
 		server.Domains[payload.FQDN] = domain
 	}
 
@@ -46,7 +45,7 @@ func Cleanup(ctx *fiber.Ctx) error {
 	payload := Request{}
 	err := ctx.BodyParser(&payload)
 	if err != nil {
-		return ctx.JSON(response.ValidationError("Payload validate is failed.", err))
+		return ctx.JSON(response.ValidationError("Payload validation failed.", err))
 	}
 
 	for _, server := range dns.Servers {
