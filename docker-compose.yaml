@@ -1,8 +1,44 @@
 services:
+  step:
+    image: smallstep/step-ca:latest
+    labels:
+      - traefik.enable=false
+    restart: always
+    volumes:
+      - step-ca:/home/step
+      - step-certs:/etc/ssl/certs
+    hostname: step
+    networks:
+      services:
+        ipv4_address: 10.0.8.253
+    command: [ "/bin/sh", "-c", "exec /usr/local/bin/step-ca --resolver 10.0.8.252:53 --password-file /home/step/secrets/password /home/step/config/ca.json" ]
+    extra_hosts:
+      - ca.svc.dev:127.0.0.1
+    environment:
+      - TZ=Asia/Shanghai
+      - DOCKER_STEPCA_INIT_NAME=Smallstep
+      - DOCKER_STEPCA_INIT_ACME=true
+      - DOCKER_STEPCA_INIT_ADDRESS=0.0.0.0:443
+      - DOCKER_STEPCA_INIT_PASSWORD=
+      - DOCKER_STEPCA_INIT_DNS_NAMES=ca.svc.tld,acme-v02.api.letsencrypt.org,step-ca
+      - DOCKER_STEPCA_INIT_ADMIN_SUBJECT=admin@example.com
+      - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true
+    container_name: step
   cdns:
     image: betterde/cdns:latest
     restart: always
+    volumes:
+      - cdns-certs:/certs
+      - step-certs:/etc/ssl/certs:ro
     hostname: cdns
+    networks:
+      services:
+        - ipv4_address: 10.0.8.252
+    depends_on:
+      step:
+        condition: service_healthy
+    extra_hosts:
+      - ca.svc.dev:10.0.8.253
     environment:
       # General configuration
       - CDNS_ENV=production
@@ -14,17 +50,34 @@ services:
 
       # API configuration
       - CDNS_HTTP_TLS_MODE=acme
-      - CDNS_HTTP_DOMAIN=cdns.svc.dev
+      - CDNS_HTTP_DOMAIN=cdns.svc.tld
       - CDNS_HTTP_LISTEN=0.0.0.0:443
-      - CDNS_HTTP_USERNAME=traefik
-      - CDNS_HTTP_PASSWORD=
 
       # TLS ACME provider
-      - CDNS_PROVIDERS_ACME_EMAIL=george@betterde.com
-      - CDNS_PROVIDERS_ACME_SERVER=https://ca.domain.tld/acme/acme/dictory
+      - CDNS_PROVIDERS_ACME_EMAIL=admin@example.com
+      - CDNS_PROVIDERS_ACME_SERVER=https://step-ca/acme/acme/dictory
       - CDNS_PROVIDERS_ACME_STORAGE=/certs/acme.json
 
       # TLS File provider
-      - CDNS_PROVIDERS_FILE_TLSKEY=/certs/domain.tld.key
-      - CDNS_PROVIDERS_FILE_TLSCERT=/certs/domain.tld.crt
+      #- CDNS_PROVIDERS_FILE_TLSKEY=/certs/domain.tld.key
+      #- CDNS_PROVIDERS_FILE_TLSCERT=/certs/domain.tld.crt
     container_name: cdns
+
+volumes:
+  step-ca:
+    name: step-ca
+  step-certs:
+    name: step-certs
+  cdns-certs:
+    name: cdns-certs
+
+networks:
+  services:
+    name: services
+    ipam:
+      config:
+        - subnet: 10.0.8.0/24
+          gateway: 10.0.8.254
+          aux_addresses:
+            step: 10.0.8.253
+            cdns: 10.0.8.252
