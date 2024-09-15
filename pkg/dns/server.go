@@ -78,7 +78,7 @@ func newServer(addr, proto string) *Server {
 	SOAStr := fmt.Sprintf("%s. SOA %s. %s. %s 28800 7200 604800 86400", strings.ToLower(config.Conf.SOA.Domain), strings.ToLower(config.Conf.DNS.NSName), strings.ToLower(config.Conf.DNS.Admin), serial)
 	SOARR, err := dns.NewRR(SOAStr)
 	if err != nil {
-		journal.Logger.With("Error", err.Error(), "SOA", SOAStr).Error("Error while adding SOA record")
+		journal.Logger.Sugar().With("Error", err.Error(), "SOA", SOAStr).Error("Error while adding SOA record")
 	} else {
 		server.appendRR(SOARR)
 		server.SOA = SOARR
@@ -106,7 +106,7 @@ func (d *Server) appendStaticRecords() {
 				A: net.ParseIP(record.Value),
 			}
 		default:
-			journal.Logger.With("Domain", domain, "Type", record.Type).Error("Unsupported record type")
+			journal.Logger.Sugar().With("Domain", domain, "Type", record.Type).Error("Unsupported record type")
 		}
 
 		d.appendRR(dnsRecord)
@@ -118,7 +118,7 @@ func (d *Server) Start(errorChannel chan error) {
 	// DNS server part
 	dns.HandleFunc(".", d.handleRequest)
 
-	journal.Logger.With("Addr", d.Server.Addr, "Proto", d.Server.Net).Debug("Listening DNS")
+	journal.Logger.Sugar().With("Addr", d.Server.Addr, "Proto", d.Server.Net).Debug("Listening DNS")
 
 	err := d.Server.ListenAndServe()
 	if err != nil {
@@ -136,7 +136,7 @@ func (d *Server) appendRR(rr dns.RR) {
 		domain.Records = append(domain.Records, rr)
 		d.Domains[addDomain] = domain
 	}
-	journal.Logger.With("Domain", addDomain, "RecordType", dns.TypeToString[rr.Header().Rrtype]).Debug("Adding new record to domain")
+	journal.Logger.Sugar().With("Domain", addDomain, "RecordType", dns.TypeToString[rr.Header().Rrtype]).Debug("Adding new record to domain")
 }
 
 func (d *Server) handleRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -299,7 +299,7 @@ func (d *Server) answer(q dns.Question) ([]dns.RR, int, bool, error) {
 		rcode = dns.RcodeSuccess
 	}
 
-	journal.Logger.With("QType", dns.TypeToString[q.Qtype], "Domain", q.Name, "RCode", dns.RcodeToString[rcode]).Debug("Answering question for domain")
+	journal.Logger.Sugar().With("QType", dns.TypeToString[q.Qtype], "Domain", q.Name, "RCode", dns.RcodeToString[rcode]).Debug("Answering question for domain")
 
 	return r, rcode, authoritative, nil
 }

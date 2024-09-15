@@ -51,13 +51,13 @@ var routeCmd = &cobra.Command{
 			}
 
 			if _, err := fmt.Fprintln(writer, route.Method, "\t", route.Path, "\t", route.Name, "\t"); err != nil {
-				journal.Logger.Error(err)
+				journal.Logger.Sugar().Error(err)
 				os.Exit(1)
 			}
 		}
 
 		if err := writer.Flush(); err != nil {
-			journal.Logger.Error(err)
+			journal.Logger.Sugar().Error(err)
 			os.Exit(1)
 		}
 	},

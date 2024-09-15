@@ -1,8 +1,9 @@
 ARG VERSION=latest
 
-FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
 
 ARG MODULE=github.com/betterde/cdns
+ARG VERSION=latest
 ARG BINARY_NAME=cdns
 ARG INSTALL_PATH=/usr/local/bin
 

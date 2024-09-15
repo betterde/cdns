@@ -9,7 +9,7 @@ import (
 type Environment string
 
 var (
-	Logger      *zap.SugaredLogger
+	Logger      *zap.Logger
 	atomicLevel zap.AtomicLevel
 )
 
@@ -37,7 +37,7 @@ func InitLogger() {
 		atomicLevel,
 	))
 
-	Logger = logger.Sugar()
+	Logger = logger.Named("cdns")
 }
 
 func SetLevel(lvl string) error {

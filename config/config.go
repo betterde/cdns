@@ -94,7 +94,7 @@ func Parse(file string) {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
-		journal.Logger.Errorf("Failed to read configuration file: %s", err)
+		journal.Logger.Sugar().Errorf("Failed to read configuration file: %s", err)
 		os.Exit(1)
 	}
 
@@ -103,7 +103,7 @@ func Parse(file string) {
 
 	err := viper.Unmarshal(&Conf)
 	if err != nil {
-		journal.Logger.Errorf("Unable to decode into config struct, %v", err)
+		journal.Logger.Sugar().Errorf("Unable to decode into config struct, %v", err)
 		os.Exit(1)
 	}
 }

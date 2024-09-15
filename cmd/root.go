@@ -94,9 +94,9 @@ func initConfig() {
 
 	err := journal.SetLevel(level)
 	if err != nil {
-		journal.Logger.Error("Unable to set logger level", err)
+		journal.Logger.Sugar().Error("Unable to set logger level", err)
 		os.Exit(1)
 	}
 
-	journal.Logger.Debugf("Configuration file currently in use: %s", viper.ConfigFileUsed())
+	journal.Logger.Sugar().Debugf("Configuration file currently in use: %s", viper.ConfigFileUsed())
 }

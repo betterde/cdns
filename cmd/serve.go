@@ -46,7 +46,7 @@ var serveCmd = &cobra.Command{
 		api.ServerInstance.Run(verbose, errChan)
 
 		if err := signalHandler(errChan, global.CancelFunc); err != nil {
-			journal.Logger.Errorw("Failed to shutdown CDNS server:", err)
+			journal.Logger.Sugar().Errorw("Failed to shutdown CDNS server:", err)
 		}
 	},
 }
@@ -75,13 +75,13 @@ func signalHandler(errChan chan error, cancel context.CancelFunc) error {
 		for _, server := range dns.Servers {
 			err := server.Server.Shutdown()
 			if err != nil {
-				journal.Logger.Error("Failed to shutdown server:", err)
+				journal.Logger.Sugar().Error("Failed to shutdown server:", err)
 			}
 		}
 		return api.ServerInstance.Engine.Shutdown()
 	case err := <-errChan:
 		cancel()
-		journal.Logger.Panic(err)
+		journal.Logger.Sugar().Panic(err)
 		return api.ServerInstance.Engine.Shutdown()
 	}
 }

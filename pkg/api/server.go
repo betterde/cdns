@@ -46,7 +46,7 @@ func InitServer(name, version string) {
 
 				if err != nil {
 					if code >= fiber.StatusInternalServerError {
-						journal.Logger.Errorw("Analysis server runtime error:", zap.Error(err))
+						journal.Logger.Sugar().Errorw("Analysis server runtime error:", zap.Error(err))
 					}
 
 					// In case the SendFile fails
@@ -81,16 +81,23 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 		case config.TLSModeACME:
 			provider := challenge.NewChallengeProvider(dns.Servers)
 			storage := certmagic.FileStorage{Path: config.Conf.Providers.ACME.Storage}
+
 			certmagic.DefaultACME.DNS01Solver = &provider
 			certmagic.DefaultACME.Agreed = true
 			certmagic.DefaultACME.CA = config.Conf.Providers.ACME.Server
-
 			certmagic.DefaultACME.Email = config.Conf.Providers.ACME.Email
-			magicConf := certmagic.NewDefault()
+			certmagic.DefaultACME.Logger = journal.Logger
+
+			magicConf := &certmagic.Config{}
+			magicConf.OCSP = certmagic.OCSPConfig{
+				DisableStapling: true,
+			}
+			magicConf.Logger = journal.Logger
 			magicConf.Storage = &storage
 			magicConf.DefaultServerName = config.Conf.HTTP.Domain
 
 			magicCache := certmagic.NewCache(certmagic.CacheOptions{
+				Logger: journal.Logger,
 				GetConfigForCert: func(cert certmagic.Certificate) (*certmagic.Config, error) {
 					return magicConf, nil
 				},
@@ -110,35 +117,35 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 			// Create custom listener
 			ln, err := tls.Listen("tcp", config.Conf.HTTP.Listen, tlsConf)
 			if err != nil {
-				journal.Logger.Panicw("Failed to start orbit server:", err)
+				journal.Logger.Sugar().Panicw("Failed to start cdns server:", err)
 			}
 
 			err = ServerInstance.Engine.Listener(ln)
 			if err != nil {
-				journal.Logger.Panicw("Failed to start orbit server:", err)
+				journal.Logger.Sugar().Panicw("Failed to start cdns server:", err)
 			}
 			break
 		case config.TLSModeFile:
 			cert, err := tls.LoadX509KeyPair("certs/ssl.cert", "certs/ssl.key")
 			if err != nil {
-				journal.Logger.Panicw("Failed to start orbit server:", err)
+				journal.Logger.Sugar().Panicw("Failed to start cdns server:", err)
 			}
 
 			// Create custom listener
 			ln, err := tls.Listen("tcp", config.Conf.HTTP.Listen, &tls.Config{Certificates: []tls.Certificate{cert}})
 			if err != nil {
-				journal.Logger.Panicw("Failed to start orbit server:", err)
+				journal.Logger.Sugar().Panicw("Failed to start cdns server:", err)
 			}
 
 			err = ServerInstance.Engine.Listener(ln)
 			if err != nil {
-				journal.Logger.Panicw("Failed to start orbit server:", err)
+				journal.Logger.Sugar().Panicw("Failed to start cdns server:", err)
 			}
 			break
 		default:
 			err := ServerInstance.Engine.Listen(config.Conf.HTTP.Listen)
 			if err != nil {
-				journal.Logger.Panicw("Failed to start orbit server:", err)
+				journal.Logger.Sugar().Panicw("Failed to start cdns server:", err)
 			}
 		}
 	}()
