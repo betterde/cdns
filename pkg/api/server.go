@@ -82,11 +82,12 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 			provider := challenge.NewChallengeProvider(dns.Servers)
 			storage := certmagic.FileStorage{Path: config.Conf.Providers.ACME.Storage}
 
-			certmagic.DefaultACME.DNS01Solver = &provider
-			certmagic.DefaultACME.Agreed = true
 			certmagic.DefaultACME.CA = config.Conf.Providers.ACME.Server
+			certmagic.DefaultACME.TestCA = config.Conf.Providers.ACME.Server
+			certmagic.DefaultACME.Agreed = true
 			certmagic.DefaultACME.Email = config.Conf.Providers.ACME.Email
 			certmagic.DefaultACME.Logger = journal.Logger
+			certmagic.DefaultACME.DNS01Solver = &provider
 
 			magicConf := &certmagic.Config{}
 			magicConf.OCSP = certmagic.OCSPConfig{
@@ -103,15 +104,15 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 				},
 			})
 
-			magic := certmagic.New(magicCache, *magicConf)
+			magicConf = certmagic.New(magicCache, *magicConf)
 
-			err := magic.ManageAsync(context.Background(), []string{config.Conf.HTTP.Domain})
+			err := magicConf.ManageAsync(context.Background(), []string{config.Conf.HTTP.Domain})
 			if err != nil {
 				errChan <- err
 				return
 			}
 
-			tlsConf.GetCertificate = magic.GetCertificate
+			tlsConf.GetCertificate = magicConf.GetCertificate
 			tlsConf.NextProtos = []string{"http/1.1", "acme-tls/1"}
 
 			// Create custom listener
