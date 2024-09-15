@@ -34,6 +34,12 @@ services:
     networks:
       services:
         - ipv4_address: 10.0.8.252
+    healthcheck:
+      test: ['CMD', 'curl', '-k', '-f', 'https://127.0.0.1:443']
+      retries: 3
+      timeout: 5s
+      interval: 1m30s
+      start_period: 10s
     depends_on:
       step:
         condition: service_healthy
