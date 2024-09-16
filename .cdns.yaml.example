@@ -1,0 +1,37 @@
+ns:
+  ip: 10.8.10.253
+
+dns:
+  admin: george.dev
+  listen: 0.0.0.0:2553
+  nsname: dev
+  records:
+    - ca.svc.dev:
+        type: A
+        value: 10.0.88.254
+    - dns.svc.dev:
+        type: A
+        value: 10.0.88.253
+  protocol: both
+
+http:
+  tls:
+    mode: acme # The tls mode support "acme" and "file".
+  domain: dns.svc.dev
+  listen: 0.0.0.0:8443
+
+soa:
+  domain: dev
+ingress:
+  ip: 10.8.10.252
+logging:
+  level: INFO
+
+providers:
+  acme:
+    email: george@betterde.com
+    server: https://ca.svc.dev/acme/acme/directory
+    storage: /Users/George/Develop/Go/src/cdns/certs
+  file:
+    tlsKey: /certs/domain.tld.key
+    tlsCert: /certs/domain.tld.crt

@@ -47,10 +47,14 @@ services:
       - ca.svc.dev:10.0.8.253
     environment:
       # General configuration
-      - CDNS_ENV=production
+      - CDNS_NS_IP=
+      - CDNS_SOA_DOMAIN=dev
+      - CDNS_INGRESS_IP=
       - CDNS_LOGGING_LEVEL=INFO
 
       # DNS configuration
+      - CDNS_DNS_ADMIN=
+      - CDNS_DNS_NSNAME=
       - CDNS_DNS_LISTEN=0.0.0.0:53
       - CDNS_DNS_PROTOCOL=both
 
