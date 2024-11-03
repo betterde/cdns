@@ -34,7 +34,9 @@ func Present(ctx *fiber.Ctx) error {
 
 		domain := server.Domains[payload.FQDN]
 		domain.Records = append(server.Domains[payload.FQDN].Records, txtRecord)
+		server.Lock()
 		server.Domains[payload.FQDN] = domain
+		server.Unlock()
 	}
 
 	return ctx.JSON(response.Success("Success", nil))
@@ -57,7 +59,9 @@ func Cleanup(ctx *fiber.Ctx) error {
 				result = append(result, rec)
 			}
 		}
+		server.Lock()
 		server.Domains[payload.FQDN] = dns.Records{Records: result}
+		server.Unlock()
 	}
 
 	return ctx.JSON(response.Success("Success", nil))

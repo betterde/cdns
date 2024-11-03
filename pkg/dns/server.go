@@ -7,6 +7,7 @@ import (
 	"github.com/miekg/dns"
 	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,6 +26,7 @@ type Server struct {
 	Server          *dns.Server
 	Domains         map[string]Records
 	PersonalKeyAuth string
+	sync.RWMutex
 }
 
 func InitServer(errChan chan error) {

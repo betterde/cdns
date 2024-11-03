@@ -67,6 +67,7 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 	if verbose {
 		ServerInstance.Engine.Use(logger.New())
 	}
+
 	ServerInstance.Engine.Use(pprof.New())
 	ServerInstance.Engine.Use(recover.New())
 	ServerInstance.Engine.Use(requestid.New())
@@ -83,10 +84,10 @@ func (s *Server) Run(verbose bool, errChan chan error) {
 			storage := certmagic.FileStorage{Path: config.Conf.Providers.ACME.Storage}
 
 			certmagic.DefaultACME.CA = config.Conf.Providers.ACME.Server
-			certmagic.DefaultACME.TestCA = config.Conf.Providers.ACME.Server
-			certmagic.DefaultACME.Agreed = true
 			certmagic.DefaultACME.Email = config.Conf.Providers.ACME.Email
+			certmagic.DefaultACME.Agreed = true
 			certmagic.DefaultACME.Logger = journal.Logger
+			certmagic.DefaultACME.TestCA = config.Conf.Providers.ACME.Server
 			certmagic.DefaultACME.DNS01Solver = &provider
 
 			magicConf := &certmagic.Config{}
